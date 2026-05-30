@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Capital Builder - 信頼関係構築アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen" x-data="appData()">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-indigo-600 text-white p-2 rounded-lg">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+                        Social Capital Builder
+                    </span>
+                </div>
+                
+                <div class="flex items-center space-x-1 sm:space-x-2">
+                    <button @click="currentTab = 'register'" :class="currentTab === 'register' ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-100'" class="px-3 py-2 rounded-lg text-sm transition flex items-center gap-1.5">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> <span class="hidden sm:inline">人物基本情報の</span>登録
+                    </button>
+                    <button @click="currentTab = 'list'" :class="currentTab === 'list' ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-100'" class="px-3 py-2 rounded-lg text-sm transition flex items-center gap-1.5">
+                        <i data-lucide="list" class="w-4 h-4"></i> <span class="hidden sm:inline">つながり</span>一覧
+                    </button>
+                    <button @click="currentTab = 'calendar'; generateCalendar();" :class="currentTab === 'calendar' ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-100'" class="px-3 py-2 rounded-lg text-sm transition flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-4 h-4"></i> カレンダー<span class="hidden sm:inline">一覧</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div x-show="currentTab === 'register'" class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm space-y-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                        <i data-lucide="user-plus" class="text-indigo-600 w-6 h-6"></i>
+                        <span x-text="editingId ? '人物基本情報の編集' : '人物基本情報の登録'"></span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1" x-text="editingId ? '選択したユーザーの信頼構築ステータスを変更・更新します。' : '新しく信頼関係を積み上げたい相手の基本情報を入力してください。'"></p>
+                </div>
+                
+                <form @submit.prevent="savePerson()" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">名前 <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="form.name" required placeholder="名前を入力" 
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">要素タグ（スペース区切り）</label>
+                        <input type="text" x-model="form.tags" placeholder="タグをスペース区切りで入力" 
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <p class="text-xs text-slate-400 mt-1">趣味、出身、特性などの共通点を半角または全角スペースで区切って入力</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                            <i data-lucide="target" class="w-3.5 h-3.5 text-indigo-500"></i> 目標や課題（価値提供のヒント）
+                        </label>
+                        <input type="text" x-model="form.goals" placeholder="相手の目標や抱えている課題、困りごとを入力" 
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <p class="text-xs text-slate-400 mt-1">叶えたいことや困りごと。ここへ質の高いGIVEを刺すフックになります</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1 flex items-center gap-1">
+                            <i data-lucide="heart-handshake" class="w-3.5 h-3.5 text-indigo-500"></i> 重要人物（家族・紹介者など）
+                        </label>
+                        <input type="text" x-model="form.keyPersons" placeholder="家族構成、ペット、紹介元などの関連人物を入力" 
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <p class="text-xs text-slate-400 mt-1">相手の大切な人や、関係のハブとなるキーマンの情報</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">誕生日</label>
+                            <input type="date" x-model="form.birthday" 
+                                class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">次の交流・旅行予定</label>
+                            <input type="date" x-model="form.eventDate" 
+                                class="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                        <div>
+                            <label class="block text-xs font-semibold text-emerald-600 uppercase mb-1">初期 GIVE 回数</label>
+                            <input type="number" min="0" x-model.number="form.give" 
+                                class="w-full px-3 py-2.5 border border-emerald-200 rounded-lg bg-emerald-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-bold text-emerald-700">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-amber-600 uppercase mb-1">初期 TAKE 回数</label>
+                            <input type="number" min="0" x-model.number="form.take" 
+                                class="w-full px-3 py-2.5 border border-amber-200 rounded-lg bg-amber-50/50 focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm font-bold text-amber-700">
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex flex-col sm:flex-row gap-3">
+                        <button type="submit" 
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 shadow-sm flex items-center justify-center gap-2 text-sm">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            <span x-text="editingId ? '変更を保存して一覧に戻る' : '新しいつながりとして登録する'"></span>
+                        </button>
+                        
+                        <button type="button" @click="cancelRegistration()" 
+                            class="border border-slate-300 hover:bg-slate-50 text-slate-600 font-medium py-3 px-6 rounded-lg transition duration-200 text-sm">
+                            キャンセル
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div x-show="currentTab === 'list'" class="space-y-6">
+            
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div class="relative w-full sm:w-72 flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </span>
+                        <input type="text" x-model="searchQuery" placeholder="名前、タグ、目標等で検索..." 
+                            class="w-full pl-9 pr-8 py-2 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <button x-show="searchQuery" @click="searchQuery = ''" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto justify-end text-xs text-slate-500">
+                    <template x-if="searchQuery">
+                        <span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md flex items-center gap-1 font-medium animate-fade-in">
+                            「<span x-text="searchQuery"></span>」で絞り込み中
+                        </span>
+                    </template>
+                    <span class="flex items-center gap-1"><i data-lucide="info" class="w-3.5 h-3.5 text-indigo-500"></i> タグをクリックするとそのタグで検索ソートできます</span>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <template x-for="person in filteredPeople()" :key="person.id">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                            
+                            <div class="space-y-3 flex-1">
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <h3 class="text-lg font-bold text-slate-900" x-text="person.name"></h3>
+                                    
+                                    <span :class="getTrustBadgeClass(person.give - person.take)" class="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                        <i data-lucide="heart" class="w-3 h-3 fill-current"></i>
+                                        <span x-text="getTrustLabel(person.give - person.take)"></span>
+                                    </span>
+                                </div>
+
+                                <div class="flex flex-wrap gap-1.5">
+                                    <template x-for="tag in person.tags" :key="tag">
+                                        <button @click="searchQuery = tag" 
+                                            :class="searchQuery.toLowerCase() === tag.toLowerCase() ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 border-transparent'"
+                                            class="text-xs px-2.5 py-1 rounded-md border flex items-center gap-1 font-medium transition-all duration-150 group">
+                                            <i data-lucide="tag" :class="searchQuery.toLowerCase() === tag.toLowerCase() ? 'text-indigo-200' : 'text-slate-400 group-hover:text-indigo-400'" class="w-3 h-3"></i>
+                                            <span x-text="tag"></span>
+                                        </button>
+                                    </template>
+                                    <span x-show="person.tags.length === 0" class="text-xs text-slate-400 italic">タグ未登録</span>
+                                </div>
+
+                                <div class="space-y-1.5 pt-1 border-t border-slate-100 text-xs text-slate-600">
+                                    <div x-show="person.goals" class="flex items-start gap-2">
+                                        <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold text-[10px] mt-0.5 shrink-0 flex items-center gap-0.5"><i data-lucide="target" class="w-2.5 h-2.5"></i> WANTS</span>
+                                        <span class="text-slate-700 font-medium" x-text="person.goals"></span>
+                                    </div>
+                                    <div x-show="person.keyPersons" class="flex items-start gap-2">
+                                        <span class="bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-bold text-[10px] mt-0.5 shrink-0 flex items-center gap-0.5"><i data-lucide="heart-handshake" class="w-2.5 h-2.5"></i> KEY PERSON</span>
+                                        <span class="text-slate-700 font-medium" x-text="person.keyPersons"></span>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-500 pt-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="cake" class="w-3.5 h-3.5 text-pink-400"></i>
+                                        <span>誕生日: <strong class="text-slate-700" x-text="person.birthday || '未設定'"></strong></span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-sky-400"></i>
+                                        <span>次の予定: <strong class="text-slate-700" x-text="person.eventDate || '未設定'"></strong></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex sm:flex-col items-end justify-between sm:justify-start gap-4 border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="text-center bg-emerald-50 rounded-xl p-2 border border-emerald-100 min-w-[70px]">
+                                        <div class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">GIVE</div>
+                                        <div class="text-xl font-black text-emerald-700 my-0.5" x-text="person.give"></div>
+                                        <button @click="incrementCount(person.id, 'give')" class="bg-white hover:bg-emerald-100 border border-emerald-200 text-emerald-600 rounded p-1 transition shadow-sm w-full flex justify-center">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="text-center bg-amber-50 rounded-xl p-2 border border-amber-100 min-w-[70px]">
+                                        <div class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">TAKE</div>
+                                        <div class="text-xl font-black text-amber-700 my-0.5" x-text="person.take"></div>
+                                        <button @click="incrementCount(person.id, 'take')" class="bg-white hover:bg-amber-100 border border-amber-200 text-amber-600 rounded p-1 transition shadow-sm w-full flex justify-center">
+                                            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[3]"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <button @click="editPerson(person)" class="text-slate-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-slate-50 transition" title="編集">
+                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                    </button>
+                                    <button @click="deletePerson(person.id)" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-50 transition" title="削除">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </template>
+
+                <div x-show="filteredPeople().length === 0" class="text-center py-12 bg-white rounded-2xl border border-slate-200 border-dashed text-slate-400">
+                    <i data-lucide="users" class="w-12 h-12 mx-auto stroke-[1] mb-3 text-slate-300"></i>
+                    <p class="text-sm font-medium">対象の人物が見つかりません。</p>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="currentTab === 'calendar'" class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-6">
+            
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="calendar-days" class="text-indigo-600 w-6 h-6"></i>
+                    <h2 class="text-xl font-bold text-slate-900" x-text="calendarTitle"></h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button @click="prevMonth()" class="p-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 transition">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button @click="currentMonthObj = new Date(); generateCalendar();" class="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-xs font-medium text-slate-600 transition">
+                        今月
+                    </button>
+                    <button @click="nextMonth()" class="p-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 transition">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-4 text-xs font-medium">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-pink-500 block"></span>🎂 誕生日</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-500 block"></span>✈️ 次の交流・旅行予定</span>
+            </div>
+
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <div class="grid grid-cols-7 bg-slate-50 border-b border-slate-200 text-center py-2 text-xs font-bold text-slate-500">
+                    <div class="text-rose-500">日</div>
+                    <div>月</div>
+                    <div>火</div>
+                    <div>水</div>
+                    <div>木</div>
+                    <div>金</div>
+                    <div class="text-sky-500">土</div>
+                </div>
+                <div class="grid grid-cols-7 grid-rows-5 divide-x divide-y divide-slate-200 bg-slate-100">
+                    <template x-for="day in calendarDays" :key="day.id">
+                        <div :class="day.isCurrentMonth ? 'bg-white' : 'bg-slate-50 text-slate-400'" class="min-h-[100px] p-2 flex flex-col justify-between group transition hover:bg-slate-50/80">
+                            <div class="flex justify-between items-center">
+                                <span :class="day.isToday ? 'bg-indigo-600 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold' : ''" 
+                                      class="text-sm font-semibold" x-text="day.dayNum"></span>
+                            </div>
+                            
+                            <div class="space-y-1 mt-1 overflow-y-auto max-h-[70px]">
+                                <template x-for="ev in day.events">
+                                    <div :class="ev.type === 'birthday' ? 'bg-pink-50 text-pink-700 border-pink-100' : 'bg-sky-50 text-sky-700 border-sky-100'" 
+                                         class="text-[10px] px-1.5 py-0.5 rounded border flex items-center justify-between gap-0.5 font-medium shadow-2xs truncate"
+                                         :title="ev.personName + ': ' + ev.label">
+                                        <span class="truncate">
+                                            <span x-text="ev.type === 'birthday' ? '🎂' : '✈️'"></span>
+                                            <span x-text="ev.personName"></span>
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function appData() {
+            return {
+                currentTab: 'register', // 初期表示：人物基本情報の登録
+                
+                people: JSON.parse(localStorage.getItem('social_capital_people')) || [],
+                form: { name: '', tags: '', goals: '', keyPersons: '', birthday: '', eventDate: '', give: 0, take: 0 },
+                editingId: null,
+                searchQuery: '',
+
+                currentMonthObj: new Date(),
+                calendarTitle: '',
+                calendarDays: [],
+
+                init() {
+                    this.$watch('people', value => {
+                        localStorage.setItem('social_capital_people', JSON.stringify(value));
+                        this.generateCalendar();
+                    });
+                    this.$nextTick(() => { lucide.createIcons(); });
+                    this.generateCalendar();
+                },
+
+                resetForm() {
+                    this.form = { name: '', tags: '', goals: '', keyPersons: '', birthday: '', eventDate: '', give: 0, take: 0 };
+                    this.editingId = null;
+                },
+
+                cancelRegistration() {
+                    this.resetForm();
+                    this.currentTab = 'list';
+                    this.$nextTick(() => { lucide.createIcons(); });
+                },
+
+                // 登録処理（スペース区切り仕様に対応）
+                savePerson() {
+                    // カンマ区切りから「半角スペース・全角スペース」区切りのパース仕様に変更
+                    // 正規表現 /[ \u3000]+/ で半角・全角スペースの連続をまとめ、配列化します
+                    const tagArray = this.form.tags 
+                        ? this.form.tags.split(/[ \u3000]+/).map(t => t.trim()).filter(t => t !== '') 
+                        : [];
+
+                    if (this.editingId) {
+                        const index = this.people.findIndex(p => p.id === this.editingId);
+                        if (index !== -1) {
+                            this.people[index] = { 
+                                ...this.people[index], 
+                                name: this.form.name, 
+                                tags: tagArray,
+                                goals: this.form.goals,
+                                keyPersons: this.form.keyPersons,
+                                birthday: this.form.birthday, 
+                                eventDate: this.form.eventDate, 
+                                give: this.form.give, 
+                                take: this.form.take 
+                            };
+                        }
+                    } else {
+                        const newPerson = { 
+                            id: Date.now(), 
+                            name: this.form.name, 
+                            tags: tagArray, 
+                            goals: this.form.goals,
+                            keyPersons: this.form.keyPersons,
+                            birthday: this.form.birthday, 
+                            eventDate: this.form.eventDate, 
+                            give: this.form.give || 0, 
+                            take: this.form.take || 0 
+                        };
+                        this.people.unshift(newPerson);
+                    }
+                    this.resetForm();
+                    this.currentTab = 'list';
+                    this.$nextTick(() => { lucide.createIcons(); });
+                },
+
+                // 編集時、登録フォームへデータを戻す（一覧性を保つため半角スペースで結合して表示）
+                editPerson(person) {
+                    this.editingId = person.id;
+                    this.form = { 
+                        name: person.name, 
+                        tags: person.tags.join(' '), // 編集時は半角スペース区切りで復元
+                        goals: person.goals || '',
+                        keyPersons: person.keyPersons || '',
+                        birthday: person.birthday, 
+                        eventDate: person.eventDate, 
+                        give: person.give, 
+                        take: person.take 
+                    };
+                    this.currentTab = 'register';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    this.$nextTick(() => { lucide.createIcons(); });
+                },
+
+                deletePerson(id) {
+                    if (confirm('この人物の記録を削除してもよろしいですか？')) {
+                        this.people = this.people.filter(p => p.id !== id);
+                    }
+                },
+
+                filteredPeople() {
+                    if (!this.searchQuery) return this.people;
+                    const query = this.searchQuery.toLowerCase().trim();
+                    return this.people.filter(p => {
+                        const matchName = p.name.toLowerCase().includes(query);
+                        const matchTags = p.tags.some(t => t.toLowerCase() === query || t.toLowerCase().includes(query));
+                        const matchGoals = (p.goals || '').toLowerCase().includes(query);
+                        const matchKeyPersons = (p.keyPersons || '').toLowerCase().includes(query);
+                        return matchName || matchTags || matchGoals || matchKeyPersons;
+                    });
+                },
+
+                incrementCount(id, type) {
+                    const person = this.people.find(p => p.id === id);
+                    if (person) person[type]++;
+                },
+
+                getTrustBadgeClass(score) {
+                    if (score > 2) return 'bg-emerald-100 text-emerald-800';
+                    if (score >= 0) return 'bg-slate-100 text-slate-800';
+                    return 'bg-rose-100 text-rose-800';
+                },
+
+                getTrustLabel(score) {
+                    if (score > 4) return '強力な信頼関係';
+                    if (score > 2) return '良好な関係';
+                    if (score >= 0) return 'ギブ＆テイク';
+                    return '要フォロー';
+                },
+
+                // カレンダー生成ロジック
+                prevMonth() {
+                    this.currentMonthObj.setMonth(this.currentMonthObj.getMonth() - 1);
+                    this.generateCalendar();
+                },
+                nextMonth() {
+                    this.currentMonthObj.setMonth(this.currentMonthObj.getMonth() + 1);
+                    this.generateCalendar();
+                },
+                generateCalendar() {
+                    const year = this.currentMonthObj.getFullYear();
+                    const month = this.currentMonthObj.getMonth();
+                    
+                    this.calendarTitle = `${year}年 ${month + 1}月`;
+
+                    const firstDayIdx = new Date(year, month, 1).getDay(); 
+                    const lastDate = new Date(year, month + 1, 0).getDate();
+                    const prevLastDate = new Date(year, month, 0).getDate();
+
+                    const days = [];
+                    const today = new Date();
+
+                    for (let i = firstDayIdx - 1; i >= 0; i--) {
+                        const d = prevLastDate - i;
+                        const fullDateStr = this.formatDateStr(month === 0 ? year - 1 : year, month === 0 ? 12 : month, d);
+                        days.push({
+                            id: 'prev-' + d,
+                            dayNum: d,
+                            isCurrentMonth: false,
+                            isToday: false,
+                            events: this.getEventsForDate(fullDateStr, true)
+                        });
+                    }
+
+                    for (let d = 1; d <= lastDate; d++) {
+                        const fullDateStr = this.formatDateStr(year, month + 1, d);
+                        const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+                        days.push({
+                            id: 'curr-' + d,
+                            dayNum: d,
+                            isCurrentMonth: true,
+                            isToday: isToday,
+                            events: this.getEventsForDate(fullDateStr, false)
+                        });
+                    }
+
+                    const totalCells = days.length;
+                    const nextMonthCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+                    for (let d = 1; d <= nextMonthCells; d++) {
+                        const fullDateStr = this.formatDateStr(month === 11 ? year + 1 : year, month === 11 ? 1 : month + 2, d);
+                        days.push({
+                            id: 'next-' + d,
+                            dayNum: d,
+                            isCurrentMonth: false,
+                            isToday: false,
+                            events: this.getEventsForDate(fullDateStr, true)
+                        });
+                    }
+
+                    this.calendarDays = days;
+                    setTimeout(() => { if(window.lucide) lucide.createIcons(); }, 50);
+                },
+
+                formatDateStr(year, month, day) {
+                    const mm = String(month).padStart(2, '0');
+                    const dd = String(day).padStart(2, '0');
+                    return `${year}-${mm}-${dd}`;
+                },
+
+                getEventsForDate(dateStr, isPaddingDay) {
+                    const matchedEvents = [];
+                    const targetMonthDay = dateStr.substring(5); 
+
+                    this.people.forEach(p => {
+                        if (p.birthday && p.birthday.substring(5) === targetMonthDay) {
+                            matchedEvents.push({ type: 'birthday', label: '誕生日 🎉', personName: p.name });
+                        }
+                        if (!isPaddingDay && p.eventDate && p.eventDate === dateStr) {
+                            matchedEvents.push({ type: 'event', label: '交流・旅行予定 ✈️', personName: p.name });
+                        }
+                    });
+
+                    return matchedEvents;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
